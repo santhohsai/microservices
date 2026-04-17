@@ -1,0 +1,79 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Sai130927
+      MYSQL_DATABASE: QuizDB
+      MYSQL_USER: santhosh
+      MYSQL_PASSWORD: Sai130927
+    ports:
+      - "3306:3306"
+    networks:
+      - micro-network
+
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      retries: 5
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - micro-network
+
+  quiz-service:
+    build: ./quiz-service
+    container_name: quiz-service
+    depends_on:
+       mysql:
+         condition: service_healthy
+       eureka-server:
+         condition: service_started
+    ports:
+      - "8081:8090"
+    networks:
+      - micro-network
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/QuizDB
+      SPRING_DATASOURCE_USERNAME: santhosh
+      SPRING_DATASOURCE_PASSWORD: Sai130927
+
+  question-service:
+    build: ./question-service
+    container_name: question-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8082:8091"
+    networks:
+      - micro-network
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/QuizDB
+      SPRING_DATASOURCE_USERNAME: santhosh
+      SPRING_DATASOURCE_PASSWORD: Sai130927
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    depends_on:
+      - eureka-server
+    ports:
+      - "8080:8080"
+    networks:
+      - micro-network
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+networks:
+  micro-network:
