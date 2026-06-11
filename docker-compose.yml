@@ -5,10 +5,10 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: Sai130927
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: QuizDB
-      MYSQL_USER: santhosh
-      MYSQL_PASSWORD: Sai130927
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     networks:
@@ -27,14 +27,20 @@ services:
     networks:
       - micro-network
 
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   quiz-service:
     build: ./quiz-service
     container_name: quiz-service
     depends_on:
-       mysql:
-         condition: service_healthy
-       eureka-server:
-         condition: service_started
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
     ports:
       - "8081:8090"
     networks:
@@ -42,8 +48,8 @@ services:
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/QuizDB
-      SPRING_DATASOURCE_USERNAME: santhosh
-      SPRING_DATASOURCE_PASSWORD: Sai130927
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
   question-service:
     build: ./question-service
@@ -60,16 +66,17 @@ services:
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/QuizDB
-      SPRING_DATASOURCE_USERNAME: santhosh
-      SPRING_DATASOURCE_PASSWORD: Sai130927
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     depends_on:
-      - eureka-server
+      eureka-server:
+        condition: service_healthy
     ports:
-      - "8080:8080"
+      - "8080:8765"
     networks:
       - micro-network
     environment:
